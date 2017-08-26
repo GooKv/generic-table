@@ -8,6 +8,7 @@ import me.gookven.swingx.generictable.api.VetoHandler;
 import javax.swing.table.AbstractTableModel;
 import java.beans.*;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -80,7 +81,11 @@ public class GenericTableModel<T> extends AbstractTableModel {
 
     private Object tryGetValue(T item, PropertyDescriptor property) {
         try {
-            return property.getReadMethod().invoke(item);
+            final Method readMethod = property.getReadMethod();
+            if (readMethod == null) {
+                throw new PropertyAccessException("Read method is missing for property " + property.getName());
+            }
+            return readMethod.invoke(item);
         } catch (IllegalAccessException e) {
             throw new PropertyAccessException("Could not access read method for property " + property.getName(), e);
         } catch (InvocationTargetException e) {
@@ -118,7 +123,11 @@ public class GenericTableModel<T> extends AbstractTableModel {
 
     private void trySetValue(T item, PropertyDescriptor property, Object value) {
         try {
-            property.getWriteMethod().invoke(item, value);
+            final Method writeMethod = property.getWriteMethod();
+            if (writeMethod == null) {
+                throw new PropertyAccessException("Write method is missing for property " + property.getName());
+            }
+            writeMethod.invoke(item, value);
         } catch (IllegalAccessException e) {
             throw new PropertyAccessException("Could not access write method for property " + property.getName(), e);
         } catch (InvocationTargetException e) {
@@ -146,14 +155,6 @@ public class GenericTableModel<T> extends AbstractTableModel {
         listenerList.remove(ModelPropertyChangeListener.class, modelPropertyChangeListener);
     }
 
-    public void addVetoableChangeListener(VetoableChangeListener listener) {
-        vetoableChangeSupport.addVetoableChangeListener(listener);
-    }
-
-    public void removeVetoableChangeListener(VetoableChangeListener listener) {
-        vetoableChangeSupport.removeVetoableChangeListener(listener);
-    }
-
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
         return columns[columnIndex].columnDescriptor.isEditable();
@@ -171,8 +172,16 @@ public class GenericTableModel<T> extends AbstractTableModel {
         return items.get(row);
     }
 
+    public VetoableChangeSupport getVetoableChangeSupport() {
+        return vetoableChangeSupport;
+    }
+
     public void setVetoHandler(VetoHandler vetoHandler) {
         this.vetoHandler = vetoHandler;
+    }
+
+    public void addItems(Collection<T> toAdd) {
+        items.addAll(toAdd);
     }
 
     private static class Column {
