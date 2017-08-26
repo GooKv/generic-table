@@ -31,6 +31,9 @@ public class GenericTableExample extends JFrame {
         genderEnumEditor = new DefaultEnumEditor<>(Gender.class);
         table.setDefaultEditor(Gender.class, genderEnumEditor);
 
+        UnboxedIntEditor unboxedIntEditor = new UnboxedIntEditor();
+        table.setDefaultEditor(int.class, unboxedIntEditor);
+
         mike = new DummyDto("Mike", 26, Gender.MALE);
         helga = new DummyDto("Helga", 20, Gender.FEMALE);
 

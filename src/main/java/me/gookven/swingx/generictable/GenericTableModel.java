@@ -146,14 +146,6 @@ public class GenericTableModel<T> extends AbstractTableModel {
         listenerList.remove(ModelPropertyChangeListener.class, modelPropertyChangeListener);
     }
 
-    public void addVetoableChangeListener(VetoableChangeListener listener) {
-        vetoableChangeSupport.addVetoableChangeListener(listener);
-    }
-
-    public void removeVetoableChangeListener(VetoableChangeListener listener) {
-        vetoableChangeSupport.removeVetoableChangeListener(listener);
-    }
-
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
         return columns[columnIndex].columnDescriptor.isEditable();
@@ -169,6 +161,10 @@ public class GenericTableModel<T> extends AbstractTableModel {
 
     public T getItem(int row) {
         return items.get(row);
+    }
+
+    public VetoableChangeSupport getVetoableChangeSupport() {
+        return vetoableChangeSupport;
     }
 
     public void setVetoHandler(VetoHandler vetoHandler) {

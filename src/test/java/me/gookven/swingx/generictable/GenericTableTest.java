@@ -1,6 +1,7 @@
 package me.gookven.swingx.generictable;
 
 import me.gookven.swingx.generictable.api.ModelPropertyChangeListener;
+import me.gookven.swingx.generictable.api.VetoHandler;
 import org.assertj.swing.data.TableCell;
 import org.assertj.swing.edt.GuiActionRunner;
 import org.assertj.swing.edt.GuiQuery;
@@ -11,6 +12,7 @@ import org.junit.Test;
 import org.mockito.Spy;
 
 import java.beans.PropertyDescriptor;
+import java.beans.PropertyVetoException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -27,6 +29,9 @@ public class GenericTableTest extends AssertJSwingJUnitTestCase {
 
     @Spy
     private ModelPropertyChangeListener<DummyDto> propertyChangeListener;
+
+    @Spy
+    private VetoHandler vetoHandler;
 
     @Override
     protected void onSetUp() {
@@ -75,13 +80,45 @@ public class GenericTableTest extends AssertJSwingJUnitTestCase {
         frame.genericTableModel.addModelPropertyChangeListener(propertyChangeListener);
 
         JTableCellFixture mikeAnimalCell = window.table().cell(TableCell.row(0).column(3));
-        mikeAnimalCell.startEditing();
         mikeAnimalCell.enterValue("MALE");
-        mikeAnimalCell.stopEditing();
         mikeAnimalCell.requireValue("MALE");
 
         verify(propertyChangeListener, only())
                 .onPropertyChanged(eq(frame.mike), any(PropertyDescriptor.class));
+    }
+
+    @Test
+    public void testTrySetAge() {
+        JTableCellFixture mikeAge = window.table().cell(TableCell.row(0).column(0));
+        mikeAge.requireEditable();
+        mikeAge.enterValue("71");
+        mikeAge.requireValue("71");
+
+        assertThat(frame.mike.getAge(), equalTo(71));
+    }
+
+    @Test
+    public void testTrySetAgeWithRestrictions() {
+        frame.genericTableModel
+                .getVetoableChangeSupport()
+                .addVetoableChangeListener("age", evt -> {
+                    int newAge = (int) evt.getNewValue();
+                    if (newAge < 0) {
+                        throw new PropertyVetoException("Age should not be less than 0", evt);
+                    }
+                });
+
+        frame.genericTableModel.setVetoHandler(vetoHandler);
+
+        JTableCellFixture mikeAge = window.table().cell(TableCell.row(0).column(0));
+        mikeAge.requireEditable();
+        String mikeAgeValue = mikeAge.value();
+        mikeAge.enterValue("-1");
+        mikeAge.requireValue(mikeAgeValue);
+
+        assertThat(frame.mike.getAge(), equalTo(26));
+
+        verify(vetoHandler, only()).handleVeto(any(PropertyVetoException.class));
     }
 
 }
