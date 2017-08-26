@@ -2,6 +2,10 @@ package me.gookven.swingx.generictable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.beans.PropertyVetoException;
+import java.util.List;
+
+import static java.util.Arrays.asList;
 
 public class GenericTableExample extends JFrame {
 
@@ -9,19 +13,13 @@ public class GenericTableExample extends JFrame {
     public JTable table;
     public JScrollPane scrollPane;
     public DefaultEnumEditor<Gender> genderEnumEditor;
-    public DummyDto mike;
-    public DummyDto helga;
 
-    public GenericTableExample(String title) throws HeadlessException {
+    public GenericTableExample(String title, List<DummyDto> dtos) throws HeadlessException {
         super(title);
-        initialize();
+        initialize(dtos);
     }
 
-    public static void main(String[] args) {
-        new GenericTableExample("Generic table example").setVisible(true);
-    }
-
-    private void initialize() {
+    private void initialize(List<DummyDto> dtos) {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setSize(new Dimension(640, 480));
 
@@ -34,16 +32,28 @@ public class GenericTableExample extends JFrame {
         UnboxedIntEditor unboxedIntEditor = new UnboxedIntEditor();
         table.setDefaultEditor(int.class, unboxedIntEditor);
 
-        mike = new DummyDto("Mike", 26, Gender.MALE);
-        helga = new DummyDto("Helga", 20, Gender.FEMALE);
-
-        genericTableModel.addItem(mike);
-        genericTableModel.addItem(helga);
+        genericTableModel.addItems(dtos);
 
         genericTableModel.addModelPropertyChangeListener((item, prop) ->
                 System.out.println("Changed property " + prop.getName() + " for object " + item));
 
+        genericTableModel
+                .getVetoableChangeSupport()
+                .addVetoableChangeListener("age", evt -> {
+                    int newAge = (int) evt.getNewValue();
+                    if (newAge < 0) {
+                        throw new PropertyVetoException("Age should not be less than 0", evt);
+                    }
+                });
+
         scrollPane = new JScrollPane(table);
         add(scrollPane, BorderLayout.CENTER);
+    }
+
+    private static final DummyDto MIKE = new DummyDto("Mike", 26, Gender.MALE);
+    private static final DummyDto HELGA = new DummyDto("Helga", 20, Gender.FEMALE);
+
+    public static void main(String[] args) {
+        new GenericTableExample("Generic table example", asList(MIKE, HELGA)).setVisible(true);
     }
 }
